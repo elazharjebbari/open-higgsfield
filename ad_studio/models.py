@@ -44,6 +44,19 @@ class ValidationError(ValueError):
     pass
 
 
+# Seedance 2.5 is token-metered: /estimate returns a formula, not an amount
+# (API answer of 2026-09-26): tokens = ceil(width × height × seconds × 24 / 1024),
+# $0.0214 per 1,000 tokens at 480p/720p, before customer discounts. Pixel counts
+# are the 16:9 frames; other aspect ratios are assumed to keep the same area.
+PIXELS = {"480p": 854 * 480, "720p": 1280 * 720}
+USD_PER_1000_TOKENS = 0.0214
+
+
+def approx_usd(payload):
+    tokens = -(-PIXELS[payload["resolution"]] * payload["duration"] * 24 // 1024)
+    return round(tokens * USD_PER_1000_TOKENS / 1000, 2)
+
+
 def get_model(key):
     if key not in MODELS:
         raise ValidationError(f"Modèle inconnu '{key}'. Seuls les modèles Seedance 2.5 sont autorisés : {', '.join(MODELS)}")

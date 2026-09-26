@@ -58,6 +58,20 @@ class PayloadTests(unittest.TestCase):
             build_payload(MODELS["t2v"], "x", image_url="https://cdn.example/p.png")
 
 
+class PricingTests(unittest.TestCase):
+    def test_formula_matches_quoted_per_second_rates(self):
+        from ad_studio.models import approx_usd
+        # API quote: ~$0.2056/s at 480p and ~$0.4622/s at 720p (16:9).
+        self.assertEqual(approx_usd({"resolution": "480p", "duration": 5}), round(0.2056 * 5, 2))
+        self.assertEqual(approx_usd({"resolution": "720p", "duration": 10}), round(0.4622 * 10, 2))
+
+    def test_description_estimate_falls_back_to_formula(self):
+        from ad_studio import studio
+        payload = {"resolution": "480p", "duration": 4}
+        self.assertEqual(studio._usd({"type": "description", "pricing_description": "..."}, payload), 0.82)
+        self.assertEqual(studio._usd({"usd": 1.5}, payload), 1.5)
+
+
 class TemplateTests(unittest.TestCase):
     def test_every_template_renders(self):
         for key in TEMPLATES:

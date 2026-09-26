@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .client import TERMINAL, ApiError, estimate_usd, media_urls
-from .models import build_payload, get_model
+from .models import approx_usd, build_payload, get_model
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -64,6 +64,14 @@ class Ledger:
         }
 
 
+def _usd(result, payload):
+    """Amount from /estimate, or the token formula when it only describes pricing."""
+    usd = estimate_usd(result)
+    if usd is None and result.get("type") == "description":
+        usd = approx_usd(payload)
+    return usd
+
+
 def prepare(model_key, prompt, **params):
     model = get_model(model_key)
     return model, build_payload(model, prompt, **params)
@@ -72,13 +80,13 @@ def prepare(model_key, prompt, **params):
 def estimate(client, model_key, prompt, **params):
     model, payload = prepare(model_key, prompt, **params)
     result = client.estimate(model.endpoint, payload)
-    return {"payload": payload, "usd": estimate_usd(result), "raw": result}
+    return {"payload": payload, "usd": _usd(result, payload), "raw": result}
 
 
 def submit(client, ledger, model_key, prompt, label="", template="", **params):
     model, payload = prepare(model_key, prompt, **params)
     try:
-        usd = estimate_usd(client.estimate(model.endpoint, payload))
+        usd = _usd(client.estimate(model.endpoint, payload), payload)
     except ApiError:
         usd = None  # an estimate failure must not block a deliberate generation
     result = client.submit(model.endpoint, payload)
