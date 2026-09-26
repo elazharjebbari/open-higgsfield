@@ -67,6 +67,16 @@ python3 -m ad_studio consumption
 
 Paramètres Seedance 2.5 : 4 à 30 s, 480p ou 720p, formats 9:16 · 1:1 · 16:9 · 3:4 · 4:3 · 21:9, audio généré en option.
 
+## Mettre le studio en ligne (VPS Fluviqa)
+Le studio s'installe comme les autres apps Fluviqa : un service systemd sur `127.0.0.1:8021`, derrière OpenLiteSpeed, en HTTPS (certbot), sur **https://studio.fluviqa.shop**. Depuis le Mac :
+
+```bash
+ssh -t -i ~/.ssh/id_ed25520 root@185.172.57.121 \
+  'curl -fsSL https://raw.githubusercontent.com/elazharjebbari/open-higgsfield/claude/higgsfield-ad-generation-cloud-gdknjo/deploy/install-vps.sh | bash'
+```
+
+Le script demande la clé Higgsfield (saisie masquée), génère le mot de passe du studio (affiché une seule fois, conservé dans `/etc/ad-studio.env` sur le VPS) et se termine par un contrôle HTTPS. Relancez la même commande pour mettre à jour le code.
+
 ## Sécurité
 - `.env`, `work/` et `outputs/` ne sont jamais commités.
 - La clé reste côté serveur local ; elle n'est envoyée qu'à `api.higgsfield.ai`.
