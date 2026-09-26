@@ -1,0 +1,6 @@
+.env
+work/
+outputs/
+__pycache__/
+*.pyc
+*.part

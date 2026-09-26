@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Higgsfield · Ad Studio</title>
+<style>
+  :root { --bg:#0b0b0f; --panel:#15151c; --line:#262631; --text:#ececf1; --muted:#8b8b99; --accent:#c6ff3d; --err:#ff6b6b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; letter-spacing:.3px; }
+  header h1 span { color:var(--accent); }
+  .usage { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .usage b { color:var(--text); }
+  main { display:grid; grid-template-columns:minmax(300px,420px) 1fr; gap:20px; padding:20px; }
+  @media (max-width:860px){ main { grid-template-columns:1fr; padding:16px; } }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:12px 0 4px; }
+  input, select, textarea { width:100%; background:#0f0f14; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; }
+  textarea { min-height:70px; resize:vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .check { display:flex; gap:8px; align-items:center; margin-top:12px; color:var(--muted); }
+  .check input { width:auto; }
+  .btns { display:flex; gap:8px; margin-top:16px; }
+  button { flex:1; border:0; border-radius:8px; padding:11px; font:600 14px system-ui; cursor:pointer; }
+  button.primary { background:var(--accent); color:#111; }
+  button.ghost { background:#23232d; color:var(--text); }
+  button:disabled { opacity:.5; cursor:wait; }
+  .msg { margin-top:10px; min-height:20px; color:var(--muted); }
+  .msg.err { color:var(--err); }
+  details { margin-top:12px; }
+  summary { cursor:pointer; color:var(--muted); font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .card video, .card .ph { width:100%; aspect-ratio:9/16; background:#000; display:block; object-fit:contain; }
+  .card .ph { display:grid; place-items:center; color:var(--muted); }
+  .card .meta { padding:10px; font-size:12px; color:var(--muted); }
+  .card .meta b { color:var(--text); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:99px; background:#23232d; margin-right:6px; }
+  .pill.completed { background:var(--accent); color:#111; }
+  .pill.failed, .pill.nsfw { background:var(--err); color:#111; }
+  h2 { font-size:14px; margin:0 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Open Higgsfield · <span>Ad Studio</span> · Seedance 2.5</h1>
+  <div class="usage" id="usage">Consommation : …</div>
+</header>
+<main>
+  <section class="panel">
+    <h2>Brief publicitaire</h2>
+    <label for="template">Type de pub</label>
+    <select id="template"></select>
+    <label for="product">Produit (en anglais de préférence)</label>
+    <input id="product" placeholder="a rose-gold vitamin C serum bottle">
+    <label for="description">Détails visuels / bénéfice</label>
+    <textarea id="description" placeholder="glass dropper bottle, glowing skin, fresh citrus slices around it"></textarea>
+    <label for="audience">Cible</label>
+    <input id="audience" value="Moroccan women aged 25-40 who shop online">
+    <div class="row">
+      <div><label for="language">Langue voix</label><select id="language"></select></div>
+      <div><label for="persona">Personnage</label><input id="persona" value="young woman"></div>
+      <div><label for="setting">Décor</label><input id="setting" value="a bright Moroccan riad"></div>
+    </div>
+    <label for="script">Phrase dite dans la vidéo (optionnel)</label>
+    <input id="script" placeholder="Had serum beddel lia bachra f 7 iyam!">
+    <label for="image">Image produit (optionnel → image → vidéo)</label>
+    <input id="image" type="file" accept="image/png,image/jpeg,image/webp">
+    <div class="row">
+      <div><label for="aspect_ratio">Format</label>
+        <select id="aspect_ratio"><option>9:16</option><option>1:1</option><option>16:9</option><option>3:4</option><option>4:3</option><option>21:9</option></select></div>
+      <div><label for="duration">Durée (s)</label><input id="duration" type="number" min="4" max="30" value="8"></div>
+      <div><label for="resolution">Qualité</label><select id="resolution"><option>720p</option><option>480p</option></select></div>
+    </div>
+    <label class="check"><input id="generate_audio" type="checkbox" checked> Générer l'audio (voix, musique, sons)</label>
+    <details>
+      <summary>Prompt (modifiable)</summary>
+      <textarea id="prompt" style="min-height:140px;margin-top:8px" placeholder="Laissez vide pour utiliser le template"></textarea>
+      <div class="btns"><button class="ghost" id="preview" type="button">Voir le prompt du template</button></div>
+    </details>
+    <div class="btns">
+      <button class="ghost" id="estimate" type="button">Estimer le prix</button>
+      <button class="primary" id="generate" type="button">Générer</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </section>
+  <section>
+    <h2>Mes pubs</h2>
+    <div class="grid" id="gallery"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let cfg = null, uploadedUrl = null, uploadedName = null;
+
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+function say(text, err) { $("msg").textContent = text; $("msg").className = "msg" + (err ? " err" : ""); }
+function usd(v) { return v == null ? "?" : v.toFixed(2) + " $"; }
+
+async function init() {
+  cfg = await api("/api/config");
+  for (const [k, t] of Object.entries(cfg.templates)) $("template").add(new Option(`${t.name} — ${t.goal}`, k));
+  for (const [k, l] of Object.entries(cfg.languages)) $("language").add(new Option(l, k));
+  $("template").onchange = () => { const t = cfg.templates[$("template").value]; $("aspect_ratio").value = t.aspect_ratio; $("duration").value = t.duration; };
+  $("template").onchange();
+  $("preview").onclick = async () => { try { $("prompt").value = (await api("/api/prompt", brief(true))).prompt; } catch (e) { say(e.message, true); } };
+  $("estimate").onclick = () => run(async () => { const r = await api("/api/estimate", await withImage()); say(`Estimation : ${usd(r.usd)}`); });
+  $("generate").onclick = () => run(async () => { const j = await api("/api/generate", await withImage()); say(`Lancé : ${j.request_id} (≈ ${usd(j.estimate_usd)})`); refresh(); });
+  refresh();
+  setInterval(poll, 6000);
+}
+
+function brief(ignorePrompt) {
+  const v = (id) => $(id).value;
+  return { template: v("template"), product: v("product"), description: v("description"), audience: v("audience"),
+    language: v("language"), persona: v("persona"), setting: v("setting"), script: v("script"),
+    aspect_ratio: v("aspect_ratio"), duration: +v("duration"), resolution: v("resolution"),
+    generate_audio: $("generate_audio").checked, prompt: ignorePrompt ? "" : v("prompt") };
+}
+
+async function withImage() {
+  const body = brief(false), file = $("image").files[0];
+  if (file) {
+    if (uploadedName !== file.name + file.size) {
+      say("Upload de l'image produit…");
+      const data = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result.split(",")[1]); r.onerror = ko; r.readAsDataURL(file); });
+      uploadedUrl = (await api("/api/upload", { data, content_type: file.type })).public_url;
+      uploadedName = file.name + file.size;
+    }
+    body.image_url = uploadedUrl;
+  }
+  return body;
+}
+
+async function run(fn) {
+  for (const b of document.querySelectorAll("button")) b.disabled = true;
+  say("…");
+  try { await fn(); } catch (e) { say(e.message, true); }
+  for (const b of document.querySelectorAll("button")) b.disabled = false;
+}
+
+let jobs = [];
+async function refresh() {
+  const h = await api("/api/history");
+  jobs = h.jobs;
+  const c = h.consumption;
+  $("usage").innerHTML = `Consommation : <b>${c.estimated_usd.toFixed(2)} $</b> · ${c.videos} vidéos · ${c.seconds} s générées`;
+  $("gallery").replaceChildren(...jobs.map(card));
+}
+
+function card(j) {
+  const el = document.createElement("div");
+  el.className = "card";
+  const media = j.files && j.files.length ? Object.assign(document.createElement("video"), { src: "/" + j.files[0], controls: true, loop: true, playsInline: true })
+    : Object.assign(document.createElement("div"), { className: "ph", textContent: j.status });
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const pill = Object.assign(document.createElement("span"), { className: "pill " + j.status, textContent: j.status });
+  const title = Object.assign(document.createElement("b"), { textContent: (j.template || "custom") + " " });
+  meta.append(pill, title, document.createTextNode(`${j.payload.duration}s · ${j.payload.aspect_ratio} · ≈ ${usd(j.estimate_usd)}`));
+  meta.title = j.payload.prompt;
+  el.append(media, meta);
+  return el;
+}
+
+async function poll() {
+  const pending = jobs.filter((j) => !["completed", "failed", "nsfw", "canceled", "cancelled"].includes(j.status) || (j.status === "completed" && !(j.files || []).length));
+  for (const j of pending) { try { await api("/api/status/" + j.request_id); } catch (e) { say(e.message, true); } }
+  if (pending.length) refresh();
+}
+
+init().catch((e) => say(e.message, true));
+</script>
+</body>
+</html>
