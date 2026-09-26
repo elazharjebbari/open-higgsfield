@@ -48,6 +48,18 @@ fi
 mkdir -p "$APP_DIR/work" "$APP_DIR/outputs"
 chown -R adstudio:adstudio "$APP_DIR/work" "$APP_DIR/outputs"
 
+step "SDK officiel Higgsfield ($APP_DIR/.venv)"
+python3 -c 'import ensurepip' 2>/dev/null || apt-get install -y -qq python3-venv >/dev/null
+[ -x "$APP_DIR/.venv/bin/python" ] || python3 -m venv "$APP_DIR/.venv"
+"$APP_DIR/.venv/bin/pip" install -q --disable-pip-version-check -r "$APP_DIR/requirements.txt"
+# Exemple Seedance 2.5 (génération facturée) avec la clé du studio, jamais affichée.
+cat > /usr/local/bin/ad-studio-example <<'CMD'
+#!/bin/sh
+set -a; . /etc/ad-studio.env; set +a
+cd /opt/ad-studio && exec runuser -u adstudio -- /opt/ad-studio/.venv/bin/python main.py "$@"
+CMD
+chmod 750 /usr/local/bin/ad-studio-example
+
 step "Secrets ($ENV_FILE)"
 if [ ! -f "$ENV_FILE" ]; then
   PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')

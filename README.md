@@ -77,6 +77,12 @@ ssh -t -i ~/.ssh/id_ed25520 root@185.172.57.121 \
 
 Le script demande la clé Higgsfield (saisie masquée), génère le mot de passe du studio (affiché une seule fois, conservé dans `/etc/ad-studio.env` sur le VPS) et se termine par un contrôle HTTPS. Relancez la même commande pour mettre à jour le code.
 
+Le script installe aussi le SDK officiel `higgsfield-client` dans `/opt/ad-studio/.venv`. Pour lancer l'exemple Seedance 2.5 de `main.py` sur le VPS (génération facturée de 5 s, qui affiche l'URL de la vidéo), utilisez la clé du studio :
+
+```bash
+ssh -i ~/.ssh/id_ed25520 root@185.172.57.121 ad-studio-example
+```
+
 ## Sécurité
 - `.env`, `work/` et `outputs/` ne sont jamais commités.
 - La clé reste côté serveur local ; elle n'est envoyée qu'à `api.higgsfield.ai`.

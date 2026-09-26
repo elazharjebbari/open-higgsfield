@@ -1,11 +1,14 @@
 """Seedance 2.5 text-to-video example using the official Higgsfield SDK.
 
-Credentials: HF_KEY="key-id:key-secret" in .env.local (git-ignored) or in the
-process environment. The value is never printed.
+Runs on the VPS with the studio's key (/etc/ad-studio.env):
 
-    .venv/bin/python main.py
+    ad-studio-example
+
+Elsewhere: HF_KEY="key-id:key-secret" in .env.local (git-ignored) or in the
+environment, then `.venv/bin/python main.py`. The key is never printed.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -33,8 +36,12 @@ def video_url(result):
 
 
 def main():
-    # An existing environment variable (e.g. a cloud secret) wins over the file.
+    # An existing environment variable (e.g. /etc/ad-studio.env on the VPS) wins over the file.
     load_dotenv(Path(__file__).with_name(".env.local"), override=False)
+    # The studio stores the key as two variables; the SDK reads HF_KEY.
+    key_id, secret = os.environ.get("HF_API_KEY_ID", ""), os.environ.get("HF_API_KEY_SECRET", "")
+    if not os.environ.get("HF_KEY") and key_id and secret:
+        os.environ["HF_KEY"] = f"{key_id}:{secret}"
 
     try:
         result = higgsfield_client.subscribe(
