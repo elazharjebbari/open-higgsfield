@@ -130,5 +130,32 @@ class StudioFlowTests(unittest.TestCase):
         self.assertEqual(data["duration"], TEMPLATES["ugc"].duration)
 
 
+class ServerAuthTests(unittest.TestCase):
+    def test_password_required_when_set(self):
+        import base64
+        import threading
+        import urllib.error
+        import urllib.request
+        from http.server import ThreadingHTTPServer
+        from ad_studio.server import Handler
+
+        with mock.patch.object(Handler, "credentials", ("studio", "s3cret")):
+            srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            self.addCleanup(srv.shutdown)
+            url = f"http://127.0.0.1:{srv.server_address[1]}/api/config"
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with self.assertRaises(urllib.error.HTTPError) as err:
+                opener.open(url)
+            self.assertEqual(err.exception.code, 401)
+            good = urllib.request.Request(url, headers={"Authorization": "Basic " + base64.b64encode(b"studio:s3cret").decode()})
+            self.assertEqual(opener.open(good).status, 200)
+
+    def test_refuses_public_bind_without_password(self):
+        from ad_studio import server
+        with mock.patch.dict("os.environ", {"STUDIO_PASSWORD": ""}), self.assertRaises(SystemExit):
+            server.main(["--host", "0.0.0.0", "--port", "0"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,14 +2,18 @@
 
 The browser never sees the API key: the page talks to this local server,
 which holds the key and forwards only Seedance 2.5 requests to Higgsfield.
-Binds to 127.0.0.1 by default. Do not expose it publicly without adding
-your own authentication, or anyone could spend your balance.
+Binds to 127.0.0.1 by default. On any other interface it refuses to start
+unless STUDIO_PASSWORD is set: every request then needs HTTP Basic auth
+(user STUDIO_USER, default "studio"), otherwise anyone could spend your balance.
 """
 
 import argparse
 import base64
+import hmac
 import json
 import mimetypes
+import os
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -26,6 +30,7 @@ MAX_BODY = 48 * 1024 * 1024
 class Handler(BaseHTTPRequestHandler):
     ledger = studio.Ledger()
     _client = None
+    credentials = None  # (user, password) when the studio is password protected
 
     @classmethod
     def client(cls):
@@ -57,7 +62,26 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "introuvable"})
         self._send(200, path.read_bytes(), mimetypes.guess_type(path.name)[0] or "application/octet-stream")
 
+    def _authorized(self):
+        if not self.credentials:
+            return True
+        scheme, _, token = (self.headers.get("Authorization") or "").partition(" ")
+        try:
+            given = base64.b64decode(token, validate=True).decode()
+        except (ValueError, UnicodeError):
+            given = ""
+        expected = "%s:%s" % self.credentials
+        if scheme.lower() == "basic" and hmac.compare_digest(given.encode(), expected.encode()):
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Ad Studio", charset="UTF-8"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
+
     def do_GET(self):
+        if not self._authorized():
+            return
         path = unquote(urlsplit(self.path).path)
         if path in ("/", "/index.html"):
             return self._file(WEB, "index.html")
@@ -77,6 +101,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "introuvable"})
 
     def do_POST(self):
+        if not self._authorized():
+            return
         path = urlsplit(self.path).path
         routes = {
             "/api/prompt": self._prompt,
@@ -135,9 +161,14 @@ class Handler(BaseHTTPRequestHandler):
 def main(argv=None):
     load_dotenv(studio.ROOT / ".env")
     parser = argparse.ArgumentParser(description="Studio web local Seedance 2.5")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument("--host", default=os.environ.get("STUDIO_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("STUDIO_PORT", "8787")))
     args = parser.parse_args(argv)
+    password = os.environ.get("STUDIO_PASSWORD", "")
+    if password:
+        Handler.credentials = (os.environ.get("STUDIO_USER", "studio"), password)
+    elif args.host not in ("127.0.0.1", "localhost", "::1"):
+        sys.exit("Refus : définissez STUDIO_PASSWORD avant d'exposer le studio hors de 127.0.0.1")
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Open Higgsfield Ad Studio → http://{args.host}:{args.port}  (Ctrl+C pour arrêter)")
     try:
